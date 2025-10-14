@@ -16,8 +16,8 @@ steps:
   displayName: 'Instalar Dependencias (requirements.txt)'
 
 - script: |
-    # Este paso es OPCIONAL, úsalo si tienes pruebas unitarias (tests)
-    # Reemplaza 'pytest' si usas otra librería como 'unittest'
+    # Este paso es OPCIONAL, se usa solo si se tiene pruebas unitarias (tests)
+    # Reemplaza 'pytest' si se uso otra libreria como 'unittest'
     pip install pytest
     pytest
   displayName: 'Ejecutar Pruebas (Opcional)'
