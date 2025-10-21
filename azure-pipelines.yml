@@ -1,7 +1,5 @@
 # Python package
-# Create and test a Python package on multiple Python versions.
-# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+# Create and test a Python package on a single Python version (3.11).
 
 trigger:
 - main
@@ -11,13 +9,7 @@ pool:
 
 strategy:
   matrix:
-    Python38:
-      python.version: '3.8'
-    Python39:
-      python.version: '3.9'
-    Python310:
-      python.version: '3.10'
-    Python311:
+    Python311:              # <--- SOLO UNA ENTRADA EN LA MATRIZ
       python.version: '3.11'
 
 steps:
@@ -37,10 +29,8 @@ steps:
     # Ejecuta tus pruebas unitarias
     pytest
   displayName: 'Run tests with pytest'
-  # Puedes añadir "continueOnError: true" si quieres que el pipeline continúe 
-  # incluso si algunas pruebas fallan (aunque no es la práctica recomendada).
 
-# Paso opcional pero muy recomendado para CI/CD: Publicar el código como un artefacto
+# Paso para publicar el código probado como un artefacto
 - task: PublishBuildArtifacts@1
   inputs:
     PathtoPublish: '$(System.DefaultWorkingDirectory)'
