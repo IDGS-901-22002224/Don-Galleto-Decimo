@@ -1,0 +1,480 @@
+/* -------------------------------------------------------------------------------Estilos generales parte superior------------------------------------------------------*/
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #d17a45;
+}
+
+.header {
+    background-color: #a65323;
+    color: #fff;
+    text-align: center;
+    padding: 15px 0;
+    position: relative;
+}
+
+.logo {
+    width: 60px;
+    height: 60px;
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    cursor: pointer;
+}
+
+.nav {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.nav a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 8px 15px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.nav a:hover,
+.nav a.active {
+    background-color: #e09566;
+    text-decoration: underline;
+}
+
+.main {
+    padding: 20px;
+}
+
+
+
+/*------------------------------------------------------------------------Estilos de Alertas------------------------------------------------------------------ */
+
+
+/* Recuadro para alertas */
+.alertas-recuadro {
+background-color: #f4bc90; /* Mismo color que el fondo de la tabla*/
+border: 3px solid #3a200f; /* Borde de color café */
+border-radius: 15px; /* Bordes redondeados */
+padding: 50px 80px; /* Mucho más espacio interno */
+margin-top: 30px; /* Espaciado superior */
+width: 100%; /* Abarca todo el ancho disponible */
+max-width: 1820px; /* Aumento significativo del ancho máximo */
+box-sizing: border-box; /* Incluye padding dentro del ancho total*/
+margin-left: auto;
+margin-right: auto; /* Centrado horizontal */
+}
+
+/* Título del recuadro */
+.alertas-recuadro h3 {
+font-size: 38px; /* Tamaño mucho más grande del título */
+font-weight: bold;
+color: #3a200f; /* Mismo color café */
+margin-bottom: 25px; /* Más espacio debajo del título */
+text-align: left;
+}
+
+/* Lista de alertas */
+.alertas-recuadro ul {
+list-style-type: none; /* Quitar viñetas */
+padding: 0; /* Quitar espaciado interno */
+margin: 0; /* Quitar margen */
+}
+
+.alertas-recuadro li {
+font-size: 30px; /* Tamaño mucho más grande para  alertas */
+color: #3a200f; /* Mismo color café */
+margin-bottom: 30px; /* Más separación entre elementos */
+display: flex;
+align-items: center;
+}
+
+.alertas-recuadro li::before {
+content: "🍪"; /* Icono de galleta */
+margin-right: 25px; /* Más separación entre el icono y el texto */
+font-size: 40px; /* Aumento máximo del tamaño del icono */
+}
+
+
+
+
+
+
+
+/* ---------------------------------------------------------------------------- Estilo general del modal  de eliminar o mermar galleta --------------------------------------------------*/
+
+
+
+/* Estilo general del modal */
+.modal-content {
+background-color: #fff; /* Fondo blanco */
+border-radius: 8px;
+padding: 20px;
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+font-family: Arial, sans-serif;
+}
+
+/* Título del modal */
+.modal-title {
+font-weight: bold; /* Negritas */
+font-size: 1.5rem;
+color: #000; /* Negro */
+text-align: center;
+}
+
+/* Etiquetas de los campos */
+.label-large {
+font-size: 1.2rem; /* Más grande */
+font-weight: bold; /* Negritas */
+font-family: 'Arial', sans-serif; /* Consistente con otros estilos*/
+color: #333; /* Gris oscuro */
+}
+
+/* Campos de entrada */
+.input-field {
+background-color: #d3d3d3; /* Gris más oscuro */
+border: 1px solid #ccc;
+color: #000; /* Texto negro */
+border-radius: 5px;
+padding: 15px; /* Más grande */
+font-size: 1rem; /* Texto más grande */
+}
+
+.input-large {
+height: 50px; /* Mayor altura */
+}
+
+.input-field:focus {
+outline: none;
+border-color: #7a3a1a; /* Bordes marrón oscuro */
+}
+
+/* Botones */
+.btn-receive {
+background-color: #964b28; /* Marrón oscuro */
+color: white;
+border: none;
+padding: 10px 20px;
+border-radius: 5px;
+cursor: pointer;
+font-weight: bold;
+}
+
+.btn-receive:hover {
+background-color: #7a3a1a; /* Marrón más oscuro */
+}
+
+.btn-cancel {
+background-color: #964b28; /* Marrón oscuro */
+color: white;
+border: none;
+padding: 10px 20px;
+border-radius: 5px;
+cursor: pointer;
+font-weight: bold;
+}
+
+.btn-cancel:hover {
+background-color: #7a3a1a; /* Marrón más oscuro */
+}
+
+
+
+/* BARRA lateral de desplazamiento y tabla --------------------------------------------------------------------- */
+/* Contenedor con scroll y fondo crema */
+.tabla-scroll-contenedor {
+    width: 100%;
+    max-height: 260px;
+    overflow-y: auto;
+    background-color: #ECC4A6;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+/* Estilo de la tabla */
+.tabla-scroll {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    background-color: #ECC4A6;
+    font-family: Arial, sans-serif;
+}
+
+/* Cabecera fija */
+.tabla-scroll th {
+    background-color: #F1B384;
+    color: #333;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    text-align: center;
+    padding: 15px;
+    border: 1px solid #a65323;
+}
+
+/* Celdas */
+.tabla-scroll td {
+    background-color: #ECC4A6;
+    color: #000;
+    text-align: center;
+    padding: 15px;
+    border: 1px solid #a65323;
+}
+
+/* Botones de acción */
+.acciones button {
+    background-color: #a65323;
+    color: rgb(236, 239, 236);
+    padding: 6px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.acciones button:hover {
+    background-color: #e09566;
+}
+
+
+
+
+
+
+
+/* merma-------------------- */
+
+.modal-mermas {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+.modal-content-mermas {
+    background-color: white;
+    margin: auto;
+    margin-top: 80px;
+    padding: 30px;
+    width: 360px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    position: relative;
+    font-family: Arial, sans-serif;
+}
+
+.modal-content-mermas label {
+    display: block;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.modal-content-mermas input,
+.modal-content-mermas select,
+.modal-content-mermas textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.modal-content-mermas .modal-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.close-mermas {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 22px;
+    font-weight: bold;
+    color: black;
+    cursor: pointer;
+}
+
+/* estilos del boton de agregar ------------------------------------------------------------------------------------------------------------- */
+
+/* Contenedor general con fondo claro y bordes redondeados */
+.custom-extra-section {
+    background-color: #ECC4A6;
+    padding: 20px;
+    margin-top: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    width: 90%;          /* controla el ancho relativo */
+    max-width: 1300px;   /* límite de ancho máximo */
+    margin-left: auto;
+    margin-right: auto;  /* centra horizontalmente */
+}
+
+/* Contenedor flexible para centrar el botón */
+.custom-button-container {
+    display: flex;
+    gap: 15px;
+}
+
+.custom-button-container.justify-content-center {
+    justify-content: center;
+}
+
+/* Botón estilo café (como en tu módulo de ventas) */
+.custom-btn-cafe {
+    background-color: #a65323; /* café */
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+    transition: background-color 0.3s ease;
+}
+
+.custom-btn-cafe:hover {
+    background-color: #e09566; /* café claro al hacer hover */
+    color: white;
+}
+
+
+/* Igual al diseño de .nav_admin ---------------------------------------------------------------------------------------------------------------------------*/
+.nav_admin {
+    width: 50%;
+    margin: 50px auto;
+    padding: 10px 20px;
+    border-radius: 25px;
+    background-color: #E5A87B;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+/* Botones tipo nav con estilo similar a <a> del nav_admin */
+.nav_admin .btn-nav {
+    background: none;
+    border: none;
+    color: #000000;
+    padding: 10px 15px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.3s;
+}
+
+/* Estilo del botón activo (como .activo en a) */
+.nav_admin .btn-nav.active {
+    color: #8B4513;
+    text-decoration: underline;
+}
+
+/* Hover opcional */
+.nav_admin .btn-nav:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+ /* ======================= MODAL AGREGAR GALLETA ======================= */
+
+    /* Fondo del modal */
+    .modal-galleta {
+        position: fixed;
+        z-index: 999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(58, 32, 15, 0.5);
+        /* Café oscuro con transparencia */
+    }
+
+    /* Contenedor del modal */
+    .modal-content-galleta {
+        background-color: #fbe8d2;
+        margin: 8% auto;
+        padding: 25px;
+        border-radius: 12px;
+        width: 450px;
+        box-shadow: 0 0 10px #3a200f;
+        position: relative;
+        font-family: 'Georgia', serif;
+    }
+
+    /* Título */
+    .modal-content-galleta h2 {
+        font-weight: bold;
+        font-size: 24px;
+        color: #3a200f;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    /* Botón de cerrar */
+    .close-galleta {
+        position: absolute;
+        top: 10px;
+        right: 14px;
+        font-size: 26px;
+        text-decoration: none;
+        color: #3a200f;
+        font-weight: bold;
+    }
+
+    .close-galleta:hover {
+        color: #7a3a1a;
+    }
+
+    /* Contenedor de botones */
+    .modal-buttons {
+        text-align: center;
+        margin-top: 25px;
+    }
+
+    /* Botones del modal */
+    .modal-buttons .btn-receive,
+    .modal-buttons .btn-cancel {
+        background-color: #964b28;
+        color: white;
+        border: none;
+        padding: 10px 22px;
+        border-radius: 6px;
+        font-weight: bold;
+        text-decoration: none;
+        margin: 0 10px;
+        display: inline-block;
+        font-size: 16px;
+    }
+
+    .modal-buttons .btn-receive:hover,
+    .modal-buttons .btn-cancel:hover {
+        background-color: #7a3a1a;
+        cursor: pointer;
+    }
+
+    /* Campos del formulario */
+    .input-field {
+        background-color: #f3d3b0;
+        border: 1px solid #a65323;
+        color: #3a200f;
+        border-radius: 6px;
+        padding: 10px;
+        font-size: 16px;
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+    .input-field:focus {
+        outline: none;
+        border-color: #7a3a1a;
+    }
