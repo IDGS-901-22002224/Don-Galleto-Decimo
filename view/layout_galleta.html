@@ -46,8 +46,7 @@
         <nav class="custom-nav">
             <a href="{{ url_for('galletas.galletas') }}"
                 class="{{ 'custom-active' if active_page == 'galletas' else '' }}">Galletas</a>
-            <a href="{{ url_for('venta.ventas') }}"
-                class="{{ 'custom-active' if active_page == 'ventas' else '' }}">Ventas</a>
+            <a href="#" class="{{ 'custom-active' if active_page == 'ventas' else '' }}">Ventas</a>
             <a href="{{ url_for('produccion.produccion') }}"
                 class="{{ 'custom-active' if active_page == 'produccion' else '' }}">Producción</a>
             <a href="#" class="{{ 'custom-active' if active_page == 'insumos' else '' }}">Insumos</a>
