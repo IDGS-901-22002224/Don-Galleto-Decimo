@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request, redirect, session, url_for
 from extensions import csrf, db
 from config import DevelopmentConfig
+from controller.controller_produccion import produccion_bp
+from controller.controller_galletas import galletas_bp
+from controller.portal_controller import portal_cliente_bp
 from controller.controller_venta import venta_bp
 
 
@@ -11,11 +14,17 @@ db.init_app(app)
 csrf.init_app(app)
 
 # Registrar blueprints
+app.register_blueprint(produccion_bp, url_prefix="/produccion")
+app.register_blueprint(galletas_bp, url_prefix="/galletas")
+app.register_blueprint(portal_cliente_bp, url_prefix="/portal")
 app.register_blueprint(venta_bp, url_prefix="/venta")
 
 
 @app.route("/")
 def index():
+    return redirect(url_for("produccion.produccion"))
+    # return render_template("produccion/produccion.html")
+    return render_template("portal/welcome.html")
     return redirect(url_for("venta.ventas"))
     # return render_template("ventas/ventas.html")
 
