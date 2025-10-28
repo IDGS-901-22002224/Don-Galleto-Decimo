@@ -22,7 +22,7 @@ variables:
   # Project root folder. Point to the folder containing manage.py file.
   projectRoot: $(System.DefaultWorkingDirectory)
 
-  pythonVersion: '3.10' # Versión de Python de Azure App Service (Python 3.10)
+  pythonVersion: '3.10' # Versión de Python de Azure App Service
 
 stages:
 - stage: Build
@@ -32,24 +32,26 @@ stages:
     pool: Default  # Usar el agente autohospedado 'Default'
     steps:
     
-    # --- MODIFICACIÓN CLAVE PARA EL ERROR DE GIT ---
+    # --- CORRECCIÓN DE GIT: fetchDepth: 0 ---
     - checkout: self
-      fetchDepth: 0  # <--- Esta línea soluciona los problemas de autenticación de Git en agentes autohospedados (exit code 128)
-    # ----------------------------------------------------
+      fetchDepth: 0  # Soluciona los problemas de autenticación de Git (exit code 128)
+    # ----------------------------------------
 
     - task: UsePythonVersion@0
       inputs:
         versionSpec: '$(pythonVersion)'
       displayName: 'Use Python $(pythonVersion)'
 
+    # --- CORRECCIÓN DE ACTIVACIÓN DE VENV EN WINDOWS ---
     - script: |
         python -m venv antenv
-        source antenv/bin/activate
+        .\antenv\Scripts\activate.ps1  # COMANDO DE ACTIVACIÓN PARA WINDOWS (PowerShell)
         python -m pip install --upgrade pip
         pip install setup
         pip install -r requirements.txt
       workingDirectory: $(projectRoot)
       displayName: "Install requirements"
+    # --------------------------------------------------
 
     - task: ArchiveFiles@2
       displayName: 'Archive files'
