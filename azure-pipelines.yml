@@ -1,84 +1,171 @@
-# Python to Linux Web App on Azure
-# Build your Python project and deploy it to Azure as a Linux Web App.
-# Change python version to one that's appropriate for your application.
-# https://docs.microsoft.com/azure/devops/pipelines/languages/python
-
-# Python to Linux Web App on Azure
-
 trigger:
-- main
+  - master
 
 variables:
-  # CONEXIÓN VÁLIDA
-  azureServiceConnectionId: 'Conexion-Flask-Students' 
-  # NOMBRE DE TU APP SERVICE
-  webAppName: 'mi-flask-app-2025' 
-  # GRUPO DE RECURSOS CORREGIDO (MÁS PROBABLE)
-  resourceGroup: 'RG-MIAppFlask' 
+  azureServiceConnectionId: "Conexion-Flask-Students"
+  webAppName: "mi-flask-app-2025"
+  resourceGroup: "RG-MIAppFlask"
   projectRoot: $(System.DefaultWorkingDirectory)
-  pythonVersion: '3.10'
 
+# ===============================================================
+# Etapa de Build
+# ===============================================================
 stages:
-- stage: Build
-  displayName: '1. Build Stage'
-  jobs:
-  - job: BuildJob
-    displayName: 'Build on Default Agent'
-    pool: Default 
-    steps:
-    
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '$(pythonVersion)'
-      displayName: 'Use Python 3.10'
+  - stage: Build
+    displayName: "Build Stage"
+    jobs:
+      - job: BuildJob
+        displayName: "Build on self-hosted Windows agent"
+        pool:
+          name: "OscarAgent"
+        steps:
+          - script: |
+              python --version
+              pip --version
+            displayName: "Check existing Python installation"
 
-    - task: ArchiveFiles@2
-      displayName: 'Archive project files'
-      inputs:
-        rootFolderOrFile: '$(projectRoot)'
-        includeRootFolder: false
-        archiveType: zip
-        archiveFile: '$(Build.ArtifactStagingDirectory)/drop.zip'
-        replaceExistingArchive: true
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+            workingDirectory: $(projectRoot)
+            displayName: "Install Python dependencies"
 
-    - publish: '$(Build.ArtifactStagingDirectory)/drop.zip'
-      artifact: drop
-      displayName: 'Publish deployment package'
+          - task: ArchiveFiles@2
+            displayName: "Archive project files"
+            inputs:
+              rootFolderOrFile: "$(projectRoot)"
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: "$(Build.ArtifactStagingDirectory)/drop.zip"
+              replaceExistingArchive: true
 
-- stage: Deploy
-  displayName: '2. Deploy Web App'
-  dependsOn: Build
-  condition: succeeded()
-  jobs:
-  - job: DeployJob
-    displayName: 'Deploy to Azure Web App'
-    pool: Default 
-    steps:
-    - download: current
-      artifact: drop
-      displayName: 'Download build artifacts'
-      
-    # CLAVE 1: Configurar Gunicorn y forzar instalación de requirements.txt
-    - task: AzureAppServiceSettings@1
-      displayName: 'Configure App Settings and Startup Command'
-      inputs:
-        azureSubscription: '$(azureServiceConnectionId)'
-        appName: '$(webAppName)'
-        resourceGroupName: '$(resourceGroup)' # Usa RGMIAppFlask
-        # CORRECCIÓN DE SINTAXIS JSON
-        appSettings: |
-          [
-            {"name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "true", "slotSetting": false}
-          ]
-        startupCommand: 'gunicorn --bind=0.0.0.0 --timeout 600 app:app'
+          - script: |
+              echo "=== Contenido del archivo ZIP ==="
+              powershell -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead('$(Build.ArtifactStagingDirectory)/drop.zip').Entries | Select-Object -First 20 FullName | Format-Table"
+            displayName: "Verify ZIP contents"
 
-    # CLAVE 2: Despliegue
-    - task: AzureWebApp@1
-      displayName: 'Deploy to Azure Web App'
-      inputs:
-        azureSubscription: '$(azureServiceConnectionId)'
-        appType: 'webAppLinux' 
-        appName: '$(webAppName)'
-        package: '$(Pipeline.Workspace)/drop/drop.zip'
-        deploymentMethod: 'zipDeploy'
-        runtimeStack: 'PYTHON|3.10'
+          - publish: "$(Build.ArtifactStagingDirectory)/drop.zip"
+            artifact: drop
+            displayName: "Publish deployment package"
+
+  # ===============================================================
+  # Etapa de Test
+  # ===============================================================
+  - stage: Test
+    displayName: "Run Automated Tests"
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: RunTests
+        displayName: "Execute Tests and Generate Reports"
+        pool:
+          name: "OscarAgent"
+        steps:
+          - script: |
+              python --version
+              pip --version
+            displayName: "Check Python installation"
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+              pip install pytest pytest-cov unittest-xml-reporting
+            workingDirectory: $(projectRoot)
+            displayName: "Install dependencies"
+
+          - script: |
+              echo "INICIANDO EJECUCIÓN DE PRUEBAS AUTOMÁTICAS"
+              python -m pytest tests/ -v --cov=./ --cov-report=xml:coverage.xml --cov-report=html:coverage_html --junitxml=test-results.xml
+            displayName: "Run Tests with Coverage and Metrics"
+            env:
+              DATABASE_URL: $(DATABASE_URL)
+              SECRET_KEY: $(SECRET_KEY)
+
+          - task: PublishTestResults@2
+            displayName: "Publish Test Results to Azure"
+            inputs:
+              testResultsFormat: "JUnit"
+              testResultsFiles: "test-results.xml"
+              testRunTitle: "Don Galleto - Test Results"
+              mergeTestResults: false
+              failTaskOnFailedTests: true
+
+          - task: PublishCodeCoverageResults@1
+            displayName: "Publish Code Coverage Report"
+            inputs:
+              codeCoverageTool: "Cobertura"
+              summaryFileLocation: "$(projectRoot)/coverage.xml"
+              reportDirectory: "$(projectRoot)/coverage_html"
+
+          - publish: "$(projectRoot)/test-results.xml"
+            artifact: test-results
+            displayName: "Publish Test Results XML"
+
+          - publish: "$(projectRoot)/coverage_html"
+            artifact: coverage-report
+            displayName: "Publish HTML Coverage Report"
+
+  # ===============================================================
+  # Etapa de Deploy
+  # ===============================================================
+  - stage: Deploy
+    displayName: "Deploy Web App"
+    dependsOn: Test
+    condition: succeeded()
+    jobs:
+      - job: DeployJob
+        displayName: "Deploy to Azure Web App Linux"
+        pool:
+          name: "OscarAgent"
+        steps:
+          - download: current
+            artifact: drop
+            displayName: "Download build artifacts"
+
+          # Habilitar logs - CORREGIDO: una línea
+          - task: AzureCLI@2
+            displayName: "Enable Application Logging"
+            inputs:
+              azureSubscription: "$(azureServiceConnectionId)"
+              scriptType: "ps"
+              scriptLocation: "inlineScript"
+              inlineScript: "az webapp log config --name $(webAppName) --resource-group $(resourceGroup) --application-logging filesystem --level verbose --docker-container-logging filesystem"
+
+          # Configurar App Service con instalación de wkhtmltopdf
+          - task: AzureAppServiceSettings@1
+            displayName: "Configure App Settings with wkhtmltopdf"
+            inputs:
+              azureSubscription: "$(azureServiceConnectionId)"
+              appName: "$(webAppName)"
+              resourceGroupName: "$(resourceGroup)"
+              appSettings: |
+                [
+                  {
+                    "name": "DATABASE_URL",
+                    "value": "$(DATABASE_URL)",
+                    "slotSetting": false
+                  },
+                  {
+                    "name": "SECRET_KEY",
+                    "value": "$(SECRET_KEY)", 
+                    "slotSetting": false
+                  },
+                  {
+                    "name": "WEBSITES_PORT",
+                    "value": "8000",
+                    "slotSetting": false
+                  }
+                ]
+              # Startup command que instala wkhtmltopdf y luego inicia la app
+              startupCommand: "apt-get update && apt-get install -y wkhtmltopdf && gunicorn --bind=0.0.0.0:8000 --timeout 600 app:app"
+
+          # Despliegue
+          - task: AzureWebApp@1
+            displayName: "Deploy to Azure Web App"
+            inputs:
+              azureSubscription: "$(azureServiceConnectionId)"
+              appType: "webAppLinux"
+              appName: "$(webAppName)"
+              package: "$(Pipeline.Workspace)/drop/drop.zip"
+              deploymentMethod: "zipDeploy"
+              runtimeStack: "PYTHON|3.10"
