@@ -9,12 +9,12 @@ trigger:
 - main
 
 variables:
-  # USAMOS LA CONEXIÓN VÁLIDA QUE TIENES EN AZURE DEVOPS
+  # CONEXIÓN VÁLIDA
   azureServiceConnectionId: 'Conexion-Flask-Students' 
   # NOMBRE DE TU APP SERVICE
   webAppName: 'mi-flask-app-2025' 
-  # GRUPO DE RECURSOS (AJUSTA ESTE VALOR)
-  resourceGroup: 'bases-de-datos' 
+  # GRUPO DE RECURSOS CORREGIDO (MÁS PROBABLE)
+  resourceGroup: 'RGMIAppFlask' 
   projectRoot: $(System.DefaultWorkingDirectory)
   pythonVersion: '3.10'
 
@@ -64,14 +64,12 @@ stages:
       inputs:
         azureSubscription: '$(azureServiceConnectionId)'
         appName: '$(webAppName)'
-        resourceGroupName: '$(resourceGroup)'
-        # --- CORRECCIÓN: USAR SINTAXIS DE OBJETO SIMPLE ---
-        appSettings: '
+        resourceGroupName: '$(resourceGroup)' # Usa RGMIAppFlask
+        # CORRECCIÓN DE SINTAXIS JSON
+        appSettings: |
           [
             {"name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "true", "slotSetting": false}
           ]
-        '
-        # ----------------------------------------------------
         startupCommand: 'gunicorn --bind=0.0.0.0 --timeout 600 app:app'
 
     # CLAVE 2: Despliegue
