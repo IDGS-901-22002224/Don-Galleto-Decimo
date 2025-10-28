@@ -65,14 +65,13 @@ stages:
         azureSubscription: '$(azureServiceConnectionId)'
         appName: '$(webAppName)'
         resourceGroupName: '$(resourceGroup)'
-        appSettings: |
+        # --- CORRECCIÓN: USAR SINTAXIS DE OBJETO SIMPLE ---
+        appSettings: '
           [
-            {
-              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
-              "value": "true", # ¡FUERZA LA INSTALACIÓN DE LIBRERÍAS EN AZURE!
-              "slotSetting": false
-            }
+            {"name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "true", "slotSetting": false}
           ]
+        '
+        # ----------------------------------------------------
         startupCommand: 'gunicorn --bind=0.0.0.0 --timeout 600 app:app'
 
     # CLAVE 2: Despliegue
