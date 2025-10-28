@@ -22,19 +22,19 @@ variables:
   # Project root folder. Point to the folder containing manage.py file.
   projectRoot: $(System.DefaultWorkingDirectory)
 
-  pythonVersion: '3.10' # <--- MODIFICADO: Versión de Python de Azure App Service
+  pythonVersion: '3.10' # Versión de Python de Azure App Service (Python 3.10)
 
 stages:
 - stage: Build
   displayName: Build stage
   jobs:
   - job: BuildJob
-    pool: Default  # <--- MODIFICADO: Usar el agente autohospedado 'Default'
+    pool: Default  # Usar el agente autohospedado 'Default'
     steps:
     
-    # --- MODIFICACIÓN PARA EL ERROR DE GIT CHECKOUT ---
+    # --- MODIFICACIÓN CLAVE PARA EL ERROR DE GIT ---
     - checkout: self
-      fetchDepth: 0  # <--- Soluciona el error 'git config' en agentes autohospedados
+      fetchDepth: 0  # <--- Esta línea soluciona los problemas de autenticación de Git en agentes autohospedados (exit code 128)
     # ----------------------------------------------------
 
     - task: UsePythonVersion@0
@@ -70,7 +70,7 @@ stages:
   condition: succeeded()
   jobs:
   - deployment: DeploymentJob
-    pool: Default  # <--- MODIFICADO: Usar el agente autohospedado 'Default'
+    pool: Default  # Usar el agente autohospedado 'Default'
     environment: $(environmentName)
     strategy:
       runOnce:
