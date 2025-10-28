@@ -4,10 +4,10 @@ trigger:
 variables:
   azureServiceConnectionId: "Conexion-Flask-Students"
   webAppName: "mi-flask-app-2025"
-  # Última corrección del Grupo de Recursos (si el anterior falló)
+  # Última corrección del Grupo de Recursos
   resourceGroup: "RG-MIAppFlask" 
   projectRoot: $(System.DefaultWorkingDirectory)
-  pythonVersion: '3.10' # Definimos la versión aquí
+  pythonVersion: '3.10'
 
 # ===============================================================
 # Etapa de Build
@@ -21,7 +21,7 @@ stages:
         pool:
           name: "Default"
         steps:
-          # CLAVE: Usar la Tarea de Azure para encontrar/instalar Python
+          # CLAVE: Configurar Python para que no falle Cmd.exe
           - task: UsePythonVersion@0
             inputs:
               versionSpec: '$(pythonVersion)'
@@ -48,11 +48,67 @@ stages:
             displayName: "Publish deployment package"
 
 # ===============================================================
-# Etapa de Deploy (Asume que los tests pasaron o se eliminaron)
+# Etapa de Test (Restaurada)
+# ===============================================================
+  - stage: Test
+    displayName: "2. Run Automated Tests"
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: RunTests
+        displayName: "Execute Tests and Generate Reports"
+        pool:
+          name: "Default"
+        steps:
+          # CLAVE: Configurar Python para que no falle Cmd.exe
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+              addToPath: true
+            displayName: 'Use Python $(pythonVersion)'
+          
+          # Descargar artefactos para ejecutar pruebas en el código
+          - download: current
+            artifact: drop
+            displayName: 'Download build artifacts for testing'
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+              pip install pytest pytest-cov unittest-xml-reporting
+            workingDirectory: $(projectRoot)
+            displayName: "Install test dependencies"
+
+          - script: |
+              echo "INICIANDO EJECUCIÓN DE PRUEBAS AUTOMÁTICAS"
+              python -m pytest tests/ -v --cov=./ --cov-report=xml:coverage.xml --cov-report=html:coverage_html --junitxml=test-results.xml
+            displayName: "Run Tests with Coverage and Metrics"
+            env:
+              # Usar variables del pipeline, ya que las variables de App Service solo están disponibles en Azure
+              DATABASE_URL: $(DATABASE_URL)
+              SECRET_KEY: $(SECRET_KEY)
+
+          # Tareas de Publicación de Resultados... (Restauradas)
+          - task: PublishTestResults@2
+            displayName: "Publish Test Results to Azure"
+            inputs:
+              testResultsFormat: "JUnit"
+              testResultsFiles: "test-results.xml"
+              testRunTitle: "Don Galleto - Test Results"
+              failTaskOnFailedTests: true
+              
+          - task: PublishCodeCoverageResults@1
+            displayName: "Publish Code Coverage Report"
+            inputs:
+              codeCoverageTool: "Cobertura"
+              summaryFileLocation: "$(projectRoot)/coverage.xml"
+
+# ===============================================================
+# Etapa de Deploy (Restaurada)
 # ===============================================================
   - stage: Deploy
-    displayName: "2. Deploy Web App"
-    dependsOn: Build
+    displayName: "3. Deploy Web App"
+    dependsOn: Test
     condition: succeeded()
     jobs:
       - job: DeployJob
@@ -64,23 +120,32 @@ stages:
             artifact: drop
             displayName: "Download build artifacts"
 
-          # Tarea 1: Configurar App Service (incluye wkhtmltopdf y gunicorn)
+          # Habilitar logs (Restaurado)
+          - task: AzureCLI@2
+            displayName: "Enable Application Logging"
+            inputs:
+              azureSubscription: "$(azureServiceConnectionId)"
+              scriptType: "ps"
+              scriptLocation: "inlineScript"
+              inlineScript: "az webapp log config --name $(webAppName) --resource-group $(resourceGroup) --application-logging filesystem --level verbose"
+
+          # Configurar App Service (Restaurado: wkhtmltopdf)
           - task: AzureAppServiceSettings@1
-            displayName: "Configure App Settings and Startup"
+            displayName: "Configure App Settings with wkhtmltopdf"
             inputs:
               azureSubscription: "$(azureServiceConnectionId)"
               appName: "$(webAppName)"
               resourceGroupName: "$(resourceGroup)"
-              # Configuración de variables (usa los valores que ya pusiste manualmente)
+              # Solo incluimos la configuración esencial. La BD y Secret Key ya están en el App Service.
               appSettings: |
                 [
-                  {"name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "true", "slotSetting": false}, # Fuerza la instalación de librerías en Azure
+                  {"name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "true", "slotSetting": false},
                   {"name": "WEBSITES_PORT", "value": "8000", "slotSetting": false}
                 ]
               # Comando de inicio: Instala wkhtmltopdf y luego inicia la app
               startupCommand: "apt-get update && apt-get install -y wkhtmltopdf && gunicorn --bind=0.0.0.0:8000 --timeout 600 app:app"
 
-          # Tarea 2: Despliegue del código
+          # Despliegue
           - task: AzureWebApp@1
             displayName: "Deploy code to Azure Web App"
             inputs:
