@@ -79,14 +79,15 @@ stages:
         deploy:
           steps:
 
-          # --- CORRECCIÓN FINAL: DESHABILITAR HARD LINKING ---
+          # --- CORRECCIÓN FINAL PARA HARD LINKING (DownloadPipelineArtifact@2) ---
           - task: DownloadPipelineArtifact@2
+            displayName: 'Download Build Artifact (No Hard Link)'
             inputs:
               artifactName: 'drop'
-              # El parámetro 'preferSymlinks: false' fuerza la copia en lugar del hard link.
-              preferSymlinks: false  # <--- Soluciona el error 'Hard linking failed'
+              # Este parámetro fuerza una copia en lugar de hard link, solucionando el error 
+              preferSymlinks: false 
               targetPath: '$(Pipeline.Workspace)/drop'
-          # --------------------------------------------------
+          # ----------------------------------------------------------------------
 
           - task: UsePythonVersion@0
             inputs:
@@ -98,5 +99,5 @@ stages:
             inputs:
               azureSubscription: $(azureServiceConnectionId)
               appName: $(webAppName)
-              # La ruta ahora apunta al directorio de descarga explícita.
+              # La ruta apunta al paquete descargado por la tarea anterior
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
