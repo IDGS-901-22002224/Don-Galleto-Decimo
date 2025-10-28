@@ -9,96 +9,79 @@ trigger:
 - main
 
 variables:
-  # Azure Resource Manager connection created during pipeline creation
-  azureServiceConnectionId: '956b817f-06c4-418d-98a3-b599810549b5'
-
-  # Web app name
-  webAppName: 'mi-flask-app-2025'
-
-  # Environment name
-  environmentName: 'mi-flask-app-2025'
-
-  # Project root folder. Point to the folder containing manage.py file.
+  # USAMOS LA CONEXIÓN VÁLIDA QUE TIENES EN AZURE DEVOPS
+  azureServiceConnectionId: 'Conexion-Flask-Students' 
+  # NOMBRE DE TU APP SERVICE
+  webAppName: 'mi-flask-app-2025' 
+  # GRUPO DE RECURSOS (AJUSTA ESTE VALOR)
+  resourceGroup: 'bases-de-datos' 
   projectRoot: $(System.DefaultWorkingDirectory)
-
-  pythonVersion: '3.10' # ¡CORREGIDO! Usar la versión 3.10.11 que YA está instalada.
+  pythonVersion: '3.10'
 
 stages:
 - stage: Build
-  displayName: Build stage
+  displayName: '1. Build Stage'
   jobs:
   - job: BuildJob
-    pool: Default  
+    displayName: 'Build on Default Agent'
+    pool: Default 
     steps:
     
-    # --- CORRECCIÓN 1: GIT Checkout ---
-    - checkout: self
-      fetchDepth: 0  
-    # ------------------------------------
-
     - task: UsePythonVersion@0
       inputs:
-        versionSpec: '$(pythonVersion)' # Usará la 3.10 que existe en el agente
-      displayName: 'Use Python $(pythonVersion)'
-
-    # --- CORRECCIÓN 2: Instalación de Python (PowerShell) ---
-    - task: PowerShell@2 
-      displayName: "Install VENV and requirements"
-      inputs:
-        targetType: 'inline'
-        script: |
-          python -m venv antenv
-          .\antenv\Scripts\activate.ps1
-          python -m pip install --upgrade pip
-          pip install setup
-          pip install -r requirements.txt
-        workingDirectory: $(projectRoot)
-    # ----------------------------------------------------------------------
+        versionSpec: '$(pythonVersion)'
+      displayName: 'Use Python 3.10'
 
     - task: ArchiveFiles@2
-      displayName: 'Archive files'
+      displayName: 'Archive project files'
       inputs:
         rootFolderOrFile: '$(projectRoot)'
         includeRootFolder: false
         archiveType: zip
-        archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+        archiveFile: '$(Build.ArtifactStagingDirectory)/drop.zip'
         replaceExistingArchive: true
 
-    - upload: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
-      displayName: 'Upload package'
+    - publish: '$(Build.ArtifactStagingDirectory)/drop.zip'
       artifact: drop
+      displayName: 'Publish deployment package'
 
 - stage: Deploy
-  displayName: 'Deploy Web App'
+  displayName: '2. Deploy Web App'
   dependsOn: Build
   condition: succeeded()
   jobs:
-  - deployment: DeploymentJob
-    pool: Default  
-    environment: $(environmentName)
-    strategy:
-      runOnce:
-        deploy:
-          steps:
+  - job: DeployJob
+    displayName: 'Deploy to Azure Web App'
+    pool: Default 
+    steps:
+    - download: current
+      artifact: drop
+      displayName: 'Download build artifacts'
+      
+    # CLAVE 1: Configurar Gunicorn y forzar instalación de requirements.txt
+    - task: AzureAppServiceSettings@1
+      displayName: 'Configure App Settings and Startup Command'
+      inputs:
+        azureSubscription: '$(azureServiceConnectionId)'
+        appName: '$(webAppName)'
+        resourceGroupName: '$(resourceGroup)'
+        appSettings: |
+          [
+            {
+              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+              "value": "true", # ¡FUERZA LA INSTALACIÓN DE LIBRERÍAS EN AZURE!
+              "slotSetting": false
+            }
+          ]
+        startupCommand: 'gunicorn --bind=0.0.0.0 --timeout 600 app:app'
 
-          # --- CORRECCIÓN 3: Hard Linking Failed! ---
-          # Se mantiene esta solución de código, pero requiere permisos de Admin para funcionar.
-          - task: DownloadPipelineArtifact@2
-            displayName: 'Download Build Artifact (No Hard Link)'
-            inputs:
-              artifactName: 'drop'
-              preferSymlinks: false 
-              targetPath: '$(Pipeline.Workspace)'
-          # ----------------------------------------------------------------------
-
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: '$(pythonVersion)'
-            displayName: 'Use Python version'
-
-          - task: AzureWebApp@1
-            displayName: 'Deploy Azure Web App : mi-flask-app-2025'
-            inputs:
-              azureSubscription: $(azureServiceConnectionId)
-              appName: $(webAppName)
-              package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+    # CLAVE 2: Despliegue
+    - task: AzureWebApp@1
+      displayName: 'Deploy to Azure Web App'
+      inputs:
+        azureSubscription: '$(azureServiceConnectionId)'
+        appType: 'webAppLinux' 
+        appName: '$(webAppName)'
+        package: '$(Pipeline.Workspace)/drop/drop.zip'
+        deploymentMethod: 'zipDeploy'
+        runtimeStack: 'PYTHON|3.10'
