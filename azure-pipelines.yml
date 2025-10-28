@@ -21,7 +21,8 @@ variables:
   # Project root folder. Point to the folder containing manage.py file.
   projectRoot: $(System.DefaultWorkingDirectory)
 
-  pythonVersion: '3.10' 
+  # La versión 3.11 se muestra en tu captura inicial, la usaremos aquí.
+  pythonVersion: '3.11' 
 
 stages:
 - stage: Build
@@ -33,7 +34,7 @@ stages:
     
     # --- CORRECCIÓN 1: GIT Checkout (fetchDepth: 0) ---
     - checkout: self
-      fetchDepth: 0  # Soluciona los errores 'exit code: 128'.
+      fetchDepth: 0  
     # ----------------------------------------------------
 
     - task: UsePythonVersion@0
@@ -41,9 +42,9 @@ stages:
         versionSpec: '$(pythonVersion)'
       displayName: 'Use Python $(pythonVersion)'
 
-    # --- CORRECCIÓN 2: Instalación de Python (PowerShell, Sintaxis OK) ---
-    # Dividimos la lógica para usar la tarea PowerShell@2, que acepta el script de activación '.ps1'
-    - task: PowerShell@2 # Tarea explícita de PowerShell
+    # --- CORRECCIÓN 2: Instalación de Python (SINTAXIS CORREGIDA) ---
+    # Usamos la tarea PowerShell@2 para que el script de activación funcione sin errores de sintaxis.
+    - task: PowerShell@2 
       displayName: "Install VENV and requirements"
       inputs:
         targetType: 'inline'
@@ -83,14 +84,14 @@ stages:
         deploy:
           steps:
 
-          # --- CORRECCIÓN 3: Hard Linking Failed! ---
+          # --- CORRECCIÓN 3: Hard Linking Failed! (Solución más fuerte) ---
           # Se fuerza la descarga con copia simple para evitar el error de permisos.
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Build Artifact (No Hard Link)'
             inputs:
               artifactName: 'drop'
               preferSymlinks: false 
-              targetPath: '$(Pipeline.Workspace)' 
+              targetPath: '$(Pipeline.Workspace)' # Ruta corta
           # ----------------------------------------------------------------------
 
           - task: UsePythonVersion@0
@@ -103,4 +104,5 @@ stages:
             inputs:
               azureSubscription: $(azureServiceConnectionId)
               appName: $(webAppName)
+              # La ruta de package se ajusta a la descarga anterior
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
