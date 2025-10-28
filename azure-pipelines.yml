@@ -4,7 +4,7 @@ trigger:
 variables:
   azureServiceConnectionId: "Conexion-Flask-Students"
   webAppName: "mi-flask-app-2025"
-  # Grupo de Recursos: RG-MIAppFlask (El más probable si RGMIAppFlask falló)
+  # Grupo de Recursos: RG-MIAppFlask (El más probable para superar el CODE: 404)
   resourceGroup: "RG-MIAppFlask" 
   projectRoot: $(System.DefaultWorkingDirectory)
   pythonVersion: '3.10'
@@ -19,9 +19,9 @@ stages:
       - job: BuildJob
         displayName: "Build and Package"
         pool:
-          name: "Default"
+          vmImage: 'ubuntu-latest' # <--- CAMBIO CRÍTICO: Usar agente de Azure
         steps:
-          # CLAVE: Configurar Python para que no falle Cmd.exe
+          # Usamos la tarea para asegurar la versión de Python
           - task: UsePythonVersion@0
             inputs:
               versionSpec: '$(pythonVersion)'
@@ -48,7 +48,7 @@ stages:
             displayName: "Publish deployment package"
 
 # ===============================================================
-# Etapa de Test (Incluye todas tus tareas)
+# Etapa de Test (Usará Ubuntu para mayor compatibilidad de comandos)
 # ===============================================================
   - stage: Test
     displayName: "2. Run Automated Tests"
@@ -58,37 +58,30 @@ stages:
       - job: RunTests
         displayName: "Execute Tests and Generate Reports"
         pool:
-          name: "Default"
+          vmImage: 'ubuntu-latest' # <--- CAMBIO CRÍTICO: Usar agente de Azure
         steps:
-          # CLAVE: Configurar Python para que no falle Cmd.exe
           - task: UsePythonVersion@0
             inputs:
               versionSpec: '$(pythonVersion)'
               addToPath: true
             displayName: 'Use Python $(pythonVersion)'
           
-          # Descargar artefactos al directorio de trabajo del Test Job
           - download: current
             artifact: drop
             displayName: 'Download build artifacts for testing'
-            # Esta descarga coloca los archivos en $(Pipeline.Workspace)/drop/drop.zip
             
           - script: |
               python -m pip install --upgrade pip
               pip install -r requirements.txt
               pip install pytest pytest-cov unittest-xml-reporting
-            # Aseguramos que el workingDirectory sea la raíz del proyecto para encontrar requirements.txt
             workingDirectory: $(projectRoot) 
             displayName: "Install test dependencies"
 
           - script: |
               echo "INICIANDO EJECUCIÓN DE PRUEBAS AUTOMÁTICAS"
-              # Asume que los archivos de prueba están en tests/
               python -m pytest tests/ -v --cov=./ --cov-report=xml:coverage.xml --cov-report=html:coverage_html --junitxml=test-results.xml
             displayName: "Run Tests with Coverage and Metrics"
-            # QUITAMOS ENV (A menos que la configures en Variables del Pipeline)
 
-          # Tareas de Publicación de Resultados... 
           - task: PublishTestResults@2
             displayName: "Publish Test Results to Azure"
             inputs:
@@ -114,7 +107,7 @@ stages:
       - job: DeployJob
         displayName: "Deploy to Azure Web App Linux"
         pool:
-          name: "Default"
+          vmImage: 'ubuntu-latest' # <--- CAMBIO CRÍTICO: Usar agente de Azure
         steps:
           - download: current
             artifact: drop
@@ -125,7 +118,7 @@ stages:
             displayName: "Enable Application Logging"
             inputs:
               azureSubscription: "$(azureServiceConnectionId)"
-              scriptType: "ps"
+              scriptType: "bash" # Cambiamos a bash, que es el shell por defecto en ubuntu
               scriptLocation: "inlineScript"
               inlineScript: "az webapp log config --name $(webAppName) --resource-group $(resourceGroup) --application-logging filesystem --level verbose"
 
@@ -138,7 +131,7 @@ stages:
               resourceGroupName: "$(resourceGroup)"
               appSettings: |
                 [
-                  {"name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "true", "slotSetting": false}, # Fuerza la instalación de librerías
+                  {"name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "true", "slotSetting": false},
                   {"name": "WEBSITES_PORT", "value": "8000", "slotSetting": false}
                 ]
               # Comando de inicio: Instala wkhtmltopdf y luego inicia la app
