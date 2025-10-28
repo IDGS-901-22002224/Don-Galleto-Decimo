@@ -42,11 +42,10 @@ stages:
         versionSpec: '$(pythonVersion)'
       displayName: 'Use Python $(pythonVersion)'
 
-    # --- CORRECCIÓN FINAL DE ACTIVACIÓN DE VENV PARA CMD ---
-    # Se usa la llamada directa a .\antenv\Scripts\pip para evitar el error de 'activate.bat' en scripts multilínea de CMD.
+    # --- CORRECCIÓN DE ACTIVACIÓN DE VENV PARA CMD ---
     - script: |
         python -m venv antenv
-        .\antenv\Scripts\pip install --upgrade pip  # Usar el pip del VENV directamente
+        .\antenv\Scripts\pip install --upgrade pip
         .\antenv\Scripts\pip install setup
         .\antenv\Scripts\pip install -r requirements.txt
       workingDirectory: $(projectRoot)
@@ -79,14 +78,14 @@ stages:
         deploy:
           steps:
 
-          # --- CORRECCIÓN PARA HARD LINKING (Permisos de Disco D:\) ---
+          # --- CORRECCIÓN FINAL: DESCARGA A UNA RUTA MÁS CORTA ---
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Build Artifact (No Hard Link)'
             inputs:
               artifactName: 'drop'
-              # Este parámetro fuerza una copia en lugar de hard link, solucionando el error 'Hard linking failed'
+              # Se fuerza copia simple y se descarga directamente al directorio de trabajo del pipeline.
               preferSymlinks: false 
-              targetPath: '$(Pipeline.Workspace)/drop'
+              targetPath: '$(Pipeline.Workspace)' # <--- CAMBIO CRUCIAL: Se apunta al Workspace sin /drop
           # ----------------------------------------------------------------------
 
           - task: UsePythonVersion@0
@@ -99,5 +98,5 @@ stages:
             inputs:
               azureSubscription: $(azureServiceConnectionId)
               appName: $(webAppName)
-              # La ruta apunta al paquete descargado por la tarea anterior
+              # La ruta debe reflejar que el artefacto (drop) se descargó directamente en el Workspace.
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
