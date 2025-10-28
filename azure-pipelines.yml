@@ -21,37 +21,34 @@ variables:
   # Project root folder. Point to the folder containing manage.py file.
   projectRoot: $(System.DefaultWorkingDirectory)
 
-  # La versión 3.11 se muestra en tu captura inicial, la usaremos aquí.
-  pythonVersion: '3.11' 
+  pythonVersion: '3.10' # ¡CORREGIDO! Usar la versión 3.10.11 que YA está instalada.
 
 stages:
 - stage: Build
   displayName: Build stage
   jobs:
   - job: BuildJob
-    pool: Default  # Usar el agente autohospedado 'Default'
+    pool: Default  
     steps:
     
-    # --- CORRECCIÓN 1: GIT Checkout (fetchDepth: 0) ---
+    # --- CORRECCIÓN 1: GIT Checkout ---
     - checkout: self
       fetchDepth: 0  
-    # ----------------------------------------------------
+    # ------------------------------------
 
     - task: UsePythonVersion@0
       inputs:
-        versionSpec: '$(pythonVersion)'
+        versionSpec: '$(pythonVersion)' # Usará la 3.10 que existe en el agente
       displayName: 'Use Python $(pythonVersion)'
 
-    # --- CORRECCIÓN 2: Instalación de Python (SINTAXIS CORREGIDA) ---
-    # Usamos la tarea PowerShell@2 para que el script de activación funcione sin errores de sintaxis.
+    # --- CORRECCIÓN 2: Instalación de Python (PowerShell) ---
     - task: PowerShell@2 
       displayName: "Install VENV and requirements"
       inputs:
         targetType: 'inline'
         script: |
           python -m venv antenv
-          .\antenv\Scripts\activate.ps1 # Script de activación de PowerShell
-          # Ya que el VENV está activado, pip y python apuntan al VENV
+          .\antenv\Scripts\activate.ps1
           python -m pip install --upgrade pip
           pip install setup
           pip install -r requirements.txt
@@ -77,21 +74,21 @@ stages:
   condition: succeeded()
   jobs:
   - deployment: DeploymentJob
-    pool: Default  # Usar el agente autohospedado 'Default'
+    pool: Default  
     environment: $(environmentName)
     strategy:
       runOnce:
         deploy:
           steps:
 
-          # --- CORRECCIÓN 3: Hard Linking Failed! (Solución más fuerte) ---
-          # Se fuerza la descarga con copia simple para evitar el error de permisos.
+          # --- CORRECCIÓN 3: Hard Linking Failed! ---
+          # Se mantiene esta solución de código, pero requiere permisos de Admin para funcionar.
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Build Artifact (No Hard Link)'
             inputs:
               artifactName: 'drop'
               preferSymlinks: false 
-              targetPath: '$(Pipeline.Workspace)' # Ruta corta
+              targetPath: '$(Pipeline.Workspace)'
           # ----------------------------------------------------------------------
 
           - task: UsePythonVersion@0
@@ -104,5 +101,4 @@ stages:
             inputs:
               azureSubscription: $(azureServiceConnectionId)
               appName: $(webAppName)
-              # La ruta de package se ajusta a la descarga anterior
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
