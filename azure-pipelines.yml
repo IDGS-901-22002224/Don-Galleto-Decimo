@@ -3,6 +3,8 @@
 # Change python version to one that's appropriate for your application.
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
+# Python to Linux Web App on Azure
+
 trigger:
 - main
 
@@ -13,16 +15,13 @@ variables:
   # Web app name
   webAppName: 'mi-flask-app-2025'
 
-  # Agent VM image name (Comentada o eliminada)
-  # vmImageName: 'ubuntu-latest' 
-
   # Environment name
   environmentName: 'mi-flask-app-2025'
 
   # Project root folder. Point to the folder containing manage.py file.
   projectRoot: $(System.DefaultWorkingDirectory)
 
-  pythonVersion: '3.10' # Versión de Python de Azure App Service
+  pythonVersion: '3.10' 
 
 stages:
 - stage: Build
@@ -32,25 +31,31 @@ stages:
     pool: Default  # Usar el agente autohospedado 'Default'
     steps:
     
-    # --- CORRECCIÓN DE GIT: fetchDepth: 0 ---
+    # --- CORRECCIÓN 1: GIT Checkout (fetchDepth: 0) ---
     - checkout: self
-      fetchDepth: 0  # Soluciona los problemas de autenticación de Git (exit code 128)
-    # ----------------------------------------
+      fetchDepth: 0  # Soluciona los errores 'exit code: 128'.
+    # ----------------------------------------------------
 
     - task: UsePythonVersion@0
       inputs:
         versionSpec: '$(pythonVersion)'
       displayName: 'Use Python $(pythonVersion)'
 
-    # --- CORRECCIÓN DE ACTIVACIÓN DE VENV PARA CMD ---
-    - script: |
-        python -m venv antenv
-        .\antenv\Scripts\pip install --upgrade pip
-        .\antenv\Scripts\pip install setup
-        .\antenv\Scripts\pip install -r requirements.txt
-      workingDirectory: $(projectRoot)
-      displayName: "Install requirements"
-    # -----------------------------------------------------------
+    # --- CORRECCIÓN 2: Instalación de Python (PowerShell, Sintaxis OK) ---
+    # Dividimos la lógica para usar la tarea PowerShell@2, que acepta el script de activación '.ps1'
+    - task: PowerShell@2 # Tarea explícita de PowerShell
+      displayName: "Install VENV and requirements"
+      inputs:
+        targetType: 'inline'
+        script: |
+          python -m venv antenv
+          .\antenv\Scripts\activate.ps1 # Script de activación de PowerShell
+          # Ya que el VENV está activado, pip y python apuntan al VENV
+          python -m pip install --upgrade pip
+          pip install setup
+          pip install -r requirements.txt
+        workingDirectory: $(projectRoot)
+    # ----------------------------------------------------------------------
 
     - task: ArchiveFiles@2
       displayName: 'Archive files'
@@ -78,14 +83,14 @@ stages:
         deploy:
           steps:
 
-          # --- CORRECCIÓN FINAL: DESCARGA A UNA RUTA MÁS CORTA ---
+          # --- CORRECCIÓN 3: Hard Linking Failed! ---
+          # Se fuerza la descarga con copia simple para evitar el error de permisos.
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Build Artifact (No Hard Link)'
             inputs:
               artifactName: 'drop'
-              # Se fuerza copia simple y se descarga directamente al directorio de trabajo del pipeline.
               preferSymlinks: false 
-              targetPath: '$(Pipeline.Workspace)' # <--- CAMBIO CRUCIAL: Se apunta al Workspace sin /drop
+              targetPath: '$(Pipeline.Workspace)' 
           # ----------------------------------------------------------------------
 
           - task: UsePythonVersion@0
@@ -98,5 +103,4 @@ stages:
             inputs:
               azureSubscription: $(azureServiceConnectionId)
               appName: $(webAppName)
-              # La ruta debe reflejar que el artefacto (drop) se descargó directamente en el Workspace.
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
