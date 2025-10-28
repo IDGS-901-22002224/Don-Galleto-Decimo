@@ -4,7 +4,7 @@ trigger:
 variables:
   azureServiceConnectionId: "Conexion-Flask-Students"
   webAppName: "mi-flask-app-2025"
-  # Última corrección del Grupo de Recursos
+  # Grupo de Recursos: RG-MIAppFlask (El más probable si RGMIAppFlask falló)
   resourceGroup: "RG-MIAppFlask" 
   projectRoot: $(System.DefaultWorkingDirectory)
   pythonVersion: '3.10'
@@ -48,7 +48,7 @@ stages:
             displayName: "Publish deployment package"
 
 # ===============================================================
-# Etapa de Test (Restaurada)
+# Etapa de Test (Incluye todas tus tareas)
 # ===============================================================
   - stage: Test
     displayName: "2. Run Automated Tests"
@@ -67,28 +67,28 @@ stages:
               addToPath: true
             displayName: 'Use Python $(pythonVersion)'
           
-          # Descargar artefactos para ejecutar pruebas en el código
+          # Descargar artefactos al directorio de trabajo del Test Job
           - download: current
             artifact: drop
             displayName: 'Download build artifacts for testing'
-
+            # Esta descarga coloca los archivos en $(Pipeline.Workspace)/drop/drop.zip
+            
           - script: |
               python -m pip install --upgrade pip
               pip install -r requirements.txt
               pip install pytest pytest-cov unittest-xml-reporting
-            workingDirectory: $(projectRoot)
+            # Aseguramos que el workingDirectory sea la raíz del proyecto para encontrar requirements.txt
+            workingDirectory: $(projectRoot) 
             displayName: "Install test dependencies"
 
           - script: |
               echo "INICIANDO EJECUCIÓN DE PRUEBAS AUTOMÁTICAS"
+              # Asume que los archivos de prueba están en tests/
               python -m pytest tests/ -v --cov=./ --cov-report=xml:coverage.xml --cov-report=html:coverage_html --junitxml=test-results.xml
             displayName: "Run Tests with Coverage and Metrics"
-            env:
-              # Usar variables del pipeline, ya que las variables de App Service solo están disponibles en Azure
-              DATABASE_URL: $(DATABASE_URL)
-              SECRET_KEY: $(SECRET_KEY)
+            # QUITAMOS ENV (A menos que la configures en Variables del Pipeline)
 
-          # Tareas de Publicación de Resultados... (Restauradas)
+          # Tareas de Publicación de Resultados... 
           - task: PublishTestResults@2
             displayName: "Publish Test Results to Azure"
             inputs:
@@ -104,7 +104,7 @@ stages:
               summaryFileLocation: "$(projectRoot)/coverage.xml"
 
 # ===============================================================
-# Etapa de Deploy (Restaurada)
+# Etapa de Deploy
 # ===============================================================
   - stage: Deploy
     displayName: "3. Deploy Web App"
@@ -120,7 +120,7 @@ stages:
             artifact: drop
             displayName: "Download build artifacts"
 
-          # Habilitar logs (Restaurado)
+          # Habilitar logs
           - task: AzureCLI@2
             displayName: "Enable Application Logging"
             inputs:
@@ -129,17 +129,16 @@ stages:
               scriptLocation: "inlineScript"
               inlineScript: "az webapp log config --name $(webAppName) --resource-group $(resourceGroup) --application-logging filesystem --level verbose"
 
-          # Configurar App Service (Restaurado: wkhtmltopdf)
+          # Configurar App Service (wkhtmltopdf y gunicorn)
           - task: AzureAppServiceSettings@1
-            displayName: "Configure App Settings with wkhtmltopdf"
+            displayName: "Configure App Settings and Startup"
             inputs:
               azureSubscription: "$(azureServiceConnectionId)"
               appName: "$(webAppName)"
               resourceGroupName: "$(resourceGroup)"
-              # Solo incluimos la configuración esencial. La BD y Secret Key ya están en el App Service.
               appSettings: |
                 [
-                  {"name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "true", "slotSetting": false},
+                  {"name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "true", "slotSetting": false}, # Fuerza la instalación de librerías
                   {"name": "WEBSITES_PORT", "value": "8000", "slotSetting": false}
                 ]
               # Comando de inicio: Instala wkhtmltopdf y luego inicia la app
