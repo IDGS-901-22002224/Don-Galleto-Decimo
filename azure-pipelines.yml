@@ -4,7 +4,7 @@ trigger:
 variables:
   azureServiceConnectionId: "Conexion-Flask-Students"
   webAppName: "mi-flask-app-2025"
-  # Grupo de Recursos: RG-MIAppFlask (El más probable para superar el CODE: 404)
+  # Grupo de Recursos: RG-MIAppFlask
   resourceGroup: "RG-MIAppFlask" 
   projectRoot: $(System.DefaultWorkingDirectory)
   pythonVersion: '3.10'
@@ -17,22 +17,23 @@ stages:
     displayName: "1. Build Stage"
     jobs:
       - job: BuildJob
-        displayName: "Build and Package"
+        displayName: "Build and Package on Default Agent"
         pool:
-          vmImage: 'ubuntu-latest' # <--- CAMBIO CRÍTICO: Usar agente de Azure
+          name: "Default" # <--- VUELVE AL AGENTE LOCAL
         steps:
-          # Usamos la tarea para asegurar la versión de Python
+          # Usamos la tarea para configurar Python
           - task: UsePythonVersion@0
             inputs:
               versionSpec: '$(pythonVersion)'
               addToPath: true
             displayName: 'Use Python $(pythonVersion)'
 
+          # Usamos 'script' para instalar dependencias. Funciona si Python está en PATH.
           - script: |
               python -m pip install --upgrade pip
               pip install -r requirements.txt
             workingDirectory: $(projectRoot)
-            displayName: "Install Python dependencies"
+            displayName: "Install Build dependencies (Local)"
 
           - task: ArchiveFiles@2
             displayName: "Archive project files"
@@ -48,7 +49,7 @@ stages:
             displayName: "Publish deployment package"
 
 # ===============================================================
-# Etapa de Test (Usará Ubuntu para mayor compatibilidad de comandos)
+# Etapa de Test (Restaurada para Agente Local)
 # ===============================================================
   - stage: Test
     displayName: "2. Run Automated Tests"
@@ -58,7 +59,7 @@ stages:
       - job: RunTests
         displayName: "Execute Tests and Generate Reports"
         pool:
-          vmImage: 'ubuntu-latest' # <--- CAMBIO CRÍTICO: Usar agente de Azure
+          name: "Default" # <--- VUELVE AL AGENTE LOCAL
         steps:
           - task: UsePythonVersion@0
             inputs:
@@ -75,8 +76,9 @@ stages:
               pip install -r requirements.txt
               pip install pytest pytest-cov unittest-xml-reporting
             workingDirectory: $(projectRoot) 
-            displayName: "Install test dependencies"
+            displayName: "Install test dependencies (Local)"
 
+          # El error Cmd.exe '1' ocurre aquí. Usamos 'script' para forzar la ejecución.
           - script: |
               echo "INICIANDO EJECUCIÓN DE PRUEBAS AUTOMÁTICAS"
               python -m pytest tests/ -v --cov=./ --cov-report=xml:coverage.xml --cov-report=html:coverage_html --junitxml=test-results.xml
@@ -107,18 +109,18 @@ stages:
       - job: DeployJob
         displayName: "Deploy to Azure Web App Linux"
         pool:
-          vmImage: 'ubuntu-latest' # <--- CAMBIO CRÍTICO: Usar agente de Azure
+          name: "Default" # <--- VUELVE AL AGENTE LOCAL
         steps:
           - download: current
             artifact: drop
             displayName: "Download build artifacts"
 
-          # Habilitar logs
+          # Habilitar logs - Usamos Powershell (ps) para compatibilidad con Windows
           - task: AzureCLI@2
             displayName: "Enable Application Logging"
             inputs:
               azureSubscription: "$(azureServiceConnectionId)"
-              scriptType: "bash" # Cambiamos a bash, que es el shell por defecto en ubuntu
+              scriptType: "ps" # Powershell para Windows
               scriptLocation: "inlineScript"
               inlineScript: "az webapp log config --name $(webAppName) --resource-group $(resourceGroup) --application-logging filesystem --level verbose"
 
@@ -131,7 +133,7 @@ stages:
               resourceGroupName: "$(resourceGroup)"
               appSettings: |
                 [
-                  {"name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "true", "slotSetting": false},
+                  {"name": "SCM_DO_BUILD_DURING_DEPLOYMENT", "value": "true", "slotSetting": false}, # Fuerza la instalación de librerías en Azure
                   {"name": "WEBSITES_PORT", "value": "8000", "slotSetting": false}
                 ]
               # Comando de inicio: Instala wkhtmltopdf y luego inicia la app
