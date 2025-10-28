@@ -1,6 +1,6 @@
 # Python to Linux Web App on Azure
 # Build your Python project and deploy it to Azure as a Linux Web App.
-# Change python version to one thats appropriate for your application.
+# Change python version to one that's appropriate for your application.
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
 trigger:
@@ -13,8 +13,8 @@ variables:
   # Web app name
   webAppName: 'mi-flask-app-2025'
 
-  # Agent VM image name
-  vmImageName: 'ubuntu-latest'
+  # Agent VM image name (Comentada o eliminada)
+  # vmImageName: 'ubuntu-latest' 
 
   # Environment name
   environmentName: 'mi-flask-app-2025'
@@ -29,8 +29,7 @@ stages:
   displayName: Build stage
   jobs:
   - job: BuildJob
-    pool:
-      vmImage: $(vmImageName)
+    pool: Default  # <--- CAMBIO CLAVE: Usar agente local
     steps:
     - task: UsePythonVersion@0
       inputs:
@@ -65,8 +64,7 @@ stages:
   condition: succeeded()
   jobs:
   - deployment: DeploymentJob
-    pool:
-      vmImage: $(vmImageName)
+    pool: Default  # <--- CAMBIO CLAVE: Usar agente local
     environment: $(environmentName)
     strategy:
       runOnce:
