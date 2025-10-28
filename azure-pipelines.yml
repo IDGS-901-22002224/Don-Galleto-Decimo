@@ -1,5 +1,5 @@
 trigger:
-  - master
+  - main
 
 variables:
   azureServiceConnectionId: "Conexion-Flask-Students"
@@ -17,7 +17,7 @@ stages:
       - job: BuildJob
         displayName: "Build on self-hosted Windows agent"
         pool:
-          name: "OscarAgent"
+          name: "Default"
         steps:
           - script: |
               python --version
@@ -59,7 +59,7 @@ stages:
       - job: RunTests
         displayName: "Execute Tests and Generate Reports"
         pool:
-          name: "OscarAgent"
+          name: "Default"
         steps:
           - script: |
               python --version
@@ -116,7 +116,7 @@ stages:
       - job: DeployJob
         displayName: "Deploy to Azure Web App Linux"
         pool:
-          name: "OscarAgent"
+          name: "Default"
         steps:
           - download: current
             artifact: drop
