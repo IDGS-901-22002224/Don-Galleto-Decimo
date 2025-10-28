@@ -14,7 +14,7 @@ variables:
   # NOMBRE DE TU APP SERVICE
   webAppName: 'mi-flask-app-2025' 
   # GRUPO DE RECURSOS CORREGIDO (MÁS PROBABLE)
-  resourceGroup: 'RGMIAppFlask' 
+  resourceGroup: 'RG-MIAppFlask' 
   projectRoot: $(System.DefaultWorkingDirectory)
   pythonVersion: '3.10'
 
