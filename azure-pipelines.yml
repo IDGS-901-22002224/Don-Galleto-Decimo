@@ -22,15 +22,21 @@ variables:
   # Project root folder. Point to the folder containing manage.py file.
   projectRoot: $(System.DefaultWorkingDirectory)
 
-  pythonVersion: '3.11'
+  pythonVersion: '3.10' # <--- MODIFICADO: Versión de Python de Azure App Service
 
 stages:
 - stage: Build
   displayName: Build stage
   jobs:
   - job: BuildJob
-    pool: Default  # <--- CAMBIO CLAVE: Usar agente local
+    pool: Default  # <--- MODIFICADO: Usar el agente autohospedado 'Default'
     steps:
+    
+    # --- MODIFICACIÓN PARA EL ERROR DE GIT CHECKOUT ---
+    - checkout: self
+      fetchDepth: 0  # <--- Soluciona el error 'git config' en agentes autohospedados
+    # ----------------------------------------------------
+
     - task: UsePythonVersion@0
       inputs:
         versionSpec: '$(pythonVersion)'
@@ -64,7 +70,7 @@ stages:
   condition: succeeded()
   jobs:
   - deployment: DeploymentJob
-    pool: Default  # <--- CAMBIO CLAVE: Usar agente local
+    pool: Default  # <--- MODIFICADO: Usar el agente autohospedado 'Default'
     environment: $(environmentName)
     strategy:
       runOnce:
